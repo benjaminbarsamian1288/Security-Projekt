@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0a0f">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Taschenrechner</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #131320;
+    --surface-hover: #1a1a2e;
+    --display-bg: #0d0d18;
+    --text: #e8e8f0;
+    --text-dim: #6b6b80;
+    --accent: #2a7a7a;
+    --accent-glow: rgba(42, 122, 122, 0.3);
+    --operator: #cc2222;
+    --operator-glow: rgba(204, 34, 34, 0.25);
+    --equals: #1a2744;
+    --border: rgba(255, 255, 255, 0.06);
+    --radius: 16px;
+  }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    touch-action: manipulation;
+  }
+
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100dvh;
+    padding: 0;
+  }
+
+  .calculator {
+    width: 100%;
+    height: 100dvh;
+    max-width: 500px;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    overflow: hidden;
+  }
+
+  /* ── Display ── */
+  .display-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 20px 24px 16px;
+    background: var(--display-bg);
+    position: relative;
+    min-height: 0;
+  }
+
+  .display-area::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.4;
+  }
+
+  .label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 300;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: auto;
+    opacity: 0.7;
+    padding-top: env(safe-area-inset-top, 12px);
+  }
+
+  .expression {
+    font-family: 'DM Mono', monospace;
+    font-size: 16px;
+    color: var(--text-dim);
+    text-align: right;
+    min-height: 24px;
+    word-break: break-all;
+    margin-bottom: 8px;
+    transition: color 0.2s;
+  }
+
+  .result {
+    font-family: 'Outfit', sans-serif;
+    font-size: 56px;
+    font-weight: 300;
+    text-align: right;
+    letter-spacing: -1px;
+    color: var(--text);
+    line-height: 1.1;
+    word-break: break-all;
+    transition: all 0.2s ease;
+  }
+
+  .result.shrink { font-size: 40px; }
+  .result.shrink-more { font-size: 30px; }
+
+  /* ── Buttons Grid ── */
+  .buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    padding: 12px 14px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom, 12px));
+    background: var(--bg);
+    flex-shrink: 0;
+  }
+
+  .btn {
+    aspect-ratio: 1.1;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'Outfit', sans-serif;
+    font-size: 24px;
+    font-weight: 400;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    transition: all 0.12s ease;
+    position: relative;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .btn:active {
+    transform: scale(0.92);
+    filter: brightness(1.2);
+  }
+
+  .btn.number:active {
+    background: var(--surface-hover);
+    box-shadow: 0 0 20px rgba(42, 122, 122, 0.1);
+  }
+
+  .btn.operator {
+    background: rgba(204, 34, 34, 0.1);
+    color: var(--operator);
+    border-color: rgba(204, 34, 34, 0.15);
+    font-weight: 600;
+  }
+
+  .btn.operator:active {
+    background: rgba(204, 34, 34, 0.25);
+    box-shadow: 0 0 20px var(--operator-glow);
+  }
+
+  .btn.operator.active-op {
+    background: rgba(204, 34, 34, 0.3);
+    box-shadow: 0 0 16px var(--operator-glow), inset 0 0 12px rgba(204, 34, 34, 0.15);
+    border-color: rgba(204, 34, 34, 0.4);
+  }
+
+  .btn.function {
+    background: rgba(42, 122, 122, 0.08);
+    color: var(--accent);
+    border-color: rgba(42, 122, 122, 0.12);
+    font-size: 19px;
+  }
+
+  .btn.function:active {
+    background: rgba(42, 122, 122, 0.2);
+    box-shadow: 0 0 20px var(--accent-glow);
+  }
+
+  .btn.equals {
+    background: var(--equals);
+    color: #fff;
+    border-color: rgba(42, 122, 122, 0.3);
+    font-weight: 600;
+    font-size: 30px;
+  }
+
+  .btn.equals:active {
+    background: var(--accent);
+    box-shadow: 0 0 30px var(--accent-glow);
+  }
+
+  .btn.zero {
+    grid-column: span 2;
+    aspect-ratio: auto;
+    height: 100%;
+  }
+
+  /* ── Ripple ── */
+  .ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.12);
+    transform: scale(0);
+    animation: rippleAnim 0.5s ease-out;
+    pointer-events: none;
+  }
+
+  @keyframes rippleAnim {
+    to { transform: scale(3); opacity: 0; }
+  }
+
+  /* ── Responsive ── */
+  @media (max-height: 600px) {
+    .btn { aspect-ratio: 1.4; font-size: 20px; }
+    .result { font-size: 42px; }
+    .buttons { gap: 6px; padding: 8px 10px; }
+    .display-area { padding: 12px 20px 10px; }
+  }
+
+  @media (min-height: 750px) {
+    .btn { aspect-ratio: 1; }
+    .result { font-size: 60px; }
+    .buttons { gap: 12px; padding: 16px 18px; }
+  }
+
+  /* Install banner */
+  .install-banner {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--accent);
+    padding: 16px 20px;
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 100;
+    animation: slideUp 0.3s ease;
+  }
+
+  .install-banner.show { display: flex; }
+
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .install-banner p {
+    font-size: 14px;
+    color: var(--text);
+  }
+
+  .install-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .dismiss-btn {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 13px;
+    cursor: pointer;
+    margin-left: 12px;
+    font-family: 'Outfit', sans-serif;
+  }
+</style>
+</head>
+<body>
+
+<div class="calculator">
+  <div class="display-area">
+    <div class="label">Taschenrechner</div>
+    <div class="expression" id="expression"></div>
+    <div class="result" id="display">0</div>
+  </div>
+
+  <div class="buttons">
+    <button class="btn function" data-action="clear">AC</button>
+    <button class="btn function" data-action="sign">+/−</button>
+    <button class="btn function" data-action="percent">%</button>
+    <button class="btn operator" data-action="operator" data-value="÷">÷</button>
+
+    <button class="btn number" data-value="7">7</button>
+    <button class="btn number" data-value="8">8</button>
+    <button class="btn number" data-value="9">9</button>
+    <button class="btn operator" data-action="operator" data-value="×">×</button>
+
+    <button class="btn number" data-value="4">4</button>
+    <button class="btn number" data-value="5">5</button>
+    <button class="btn number" data-value="6">6</button>
+    <button class="btn operator" data-action="operator" data-value="−">−</button>
+
+    <button class="btn number" data-value="1">1</button>
+    <button class="btn number" data-value="2">2</button>
+    <button class="btn number" data-value="3">3</button>
+    <button class="btn operator" data-action="operator" data-value="+">+</button>
+
+    <button class="btn number zero" data-value="0">0</button>
+    <button class="btn number" data-value=".">.</button>
+    <button class="btn equals" data-action="equals">=</button>
+  </div>
+</div>
+
+<!-- Install Banner -->
+<div class="install-banner" id="installBanner">
+  <p>Als App installieren?</p>
+  <div>
+    <button class="install-btn" id="installBtn">Installieren</button>
+    <button class="dismiss-btn" id="dismissBtn">Nein</button>
+  </div>
+</div>
+
+<script>
+  // ── Service Worker Registration ──
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js');
+  }
+
+  // ── PWA Install Prompt ──
+  let deferredPrompt;
+  const installBanner = document.getElementById('installBanner');
+  const installBtn = document.getElementById('installBtn');
+  const dismissBtn = document.getElementById('dismissBtn');
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    installBanner.classList.add('show');
+  });
+
+  installBtn.addEventListener('click', async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      deferredPrompt = null;
+    }
+    installBanner.classList.remove('show');
+  });
+
+  dismissBtn.addEventListener('click', () => {
+    installBanner.classList.remove('show');
+  });
+
+  // ── Calculator Logic ──
+  const display = document.getElementById('display');
+  const expression = document.getElementById('expression');
+
+  let currentInput = '0';
+  let firstNumber = null;
+  let operator = null;
+  let waitingForSecond = false;
+
+  function updateDisplay() {
+    display.textContent = currentInput;
+    const len = currentInput.length;
+    display.classList.remove('shrink', 'shrink-more');
+    if (len > 12) display.classList.add('shrink-more');
+    else if (len > 8) display.classList.add('shrink');
+  }
+
+  function formatNumber(num) {
+    if (Number.isInteger(num) && Math.abs(num) < 1e15) {
+      return num.toLocaleString('de-DE');
+    }
+    return parseFloat(num.toPrecision(10)).toString().replace('.', ',');
+  }
+
+  function calculate(a, op, b) {
+    switch (op) {
+      case '+': return a + b;
+      case '−': return a - b;
+      case '×': return a * b;
+      case '÷': return b !== 0 ? a / b : 'Fehler';
+    }
+  }
+
+  function clearActiveOp() {
+    document.querySelectorAll('.btn.operator').forEach(b => b.classList.remove('active-op'));
+  }
+
+  function setActiveOp(value) {
+    clearActiveOp();
+    document.querySelectorAll('.btn.operator').forEach(b => {
+      if (b.dataset.value === value) b.classList.add('active-op');
+    });
+  }
+
+  // Ripple
+  function addRipple(e, btn) {
+    const ripple = document.createElement('span');
+    ripple.classList.add('ripple');
+    const rect = btn.getBoundingClientRect();
+    const cx = e.touches ? e.touches[0].clientX : e.clientX;
+    const cy = e.touches ? e.touches[0].clientY : e.clientY;
+    const size = Math.max(rect.width, rect.height);
+    ripple.style.width = ripple.style.height = size + 'px';
+    ripple.style.left = (cx - rect.left - size / 2) + 'px';
+    ripple.style.top = (cy - rect.top - size / 2) + 'px';
+    btn.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 500);
+  }
+
+  document.querySelectorAll('.btn').forEach(btn => {
+    btn.addEventListener('pointerdown', (e) => addRipple(e, btn));
+
+    btn.addEventListener('click', () => {
+      const action = btn.dataset.action;
+      const value = btn.dataset.value;
+
+      if (!action) {
+        clearActiveOp();
+        if (waitingForSecond) {
+          currentInput = value === '.' ? '0.' : value;
+          waitingForSecond = false;
+        } else {
+          if (value === '.') {
+            if (!currentInput.includes('.')) currentInput += '.';
+          } else {
+            currentInput = currentInput === '0' ? value : currentInput + value;
+          }
+        }
+        updateDisplay();
+        return;
+      }
+
+      switch (action) {
+        case 'clear':
+          currentInput = '0';
+          firstNumber = null;
+          operator = null;
+          waitingForSecond = false;
+          expression.textContent = '';
+          clearActiveOp();
+          break;
+
+        case 'sign':
+          if (currentInput !== '0') {
+            currentInput = currentInput.startsWith('-')
+              ? currentInput.slice(1)
+              : '-' + currentInput;
+          }
+          break;
+
+        case 'percent':
+          currentInput = String(parseFloat(currentInput) / 100);
+          break;
+
+        case 'operator':
+          clearActiveOp();
+          const inputNum = parseFloat(currentInput);
+          if (firstNumber !== null && !waitingForSecond) {
+            const result = calculate(firstNumber, operator, inputNum);
+            if (result === 'Fehler') {
+              currentInput = 'Fehler';
+              firstNumber = null;
+              operator = null;
+              expression.textContent = '';
+              updateDisplay();
+              return;
+            }
+            firstNumber = result;
+            currentInput = formatNumber(result);
+          } else {
+            firstNumber = inputNum;
+          }
+          operator = value;
+          waitingForSecond = true;
+          expression.textContent = `${formatNumber(firstNumber)} ${value}`;
+          setActiveOp(value);
+          break;
+
+        case 'equals':
+          clearActiveOp();
+          if (firstNumber !== null && operator) {
+            const secondNum = parseFloat(currentInput);
+            const result = calculate(firstNumber, operator, secondNum);
+            expression.textContent = `${formatNumber(firstNumber)} ${operator} ${formatNumber(secondNum)} =`;
+            currentInput = result === 'Fehler' ? 'Fehler' : formatNumber(result);
+            firstNumber = null;
+            operator = null;
+            waitingForSecond = false;
+          }
+          break;
+      }
+
+      updateDisplay();
+    });
+  });
+
+  document.addEventListener('dblclick', e => e.preventDefault());
+</script>
+
+</body>
+</html>
