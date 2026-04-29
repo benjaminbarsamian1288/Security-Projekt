@@ -1,632 +1,240 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#050510">
-<link rel="manifest" href="manifest.json">
-<link rel="icon" href="icon-192.png">
-<link rel="apple-touch-icon" href="icon-192.png">
-<title>Benny's Taschenrechner</title>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@200;300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
-  :root {
-    --bg: #050510;
-    --surface: rgba(255, 255, 255, 0.04);
-    --surface-hover: rgba(255, 255, 255, 0.08);
-    --glass: rgba(255, 255, 255, 0.06);
-    --glass-border: rgba(255, 255, 255, 0.08);
-    --text: #f0f0f5;
-    --text-dim: rgba(255, 255, 255, 0.35);
-    --accent: #00d4aa;
-    --accent-dim: rgba(0, 212, 170, 0.15);
-    --accent-glow: rgba(0, 212, 170, 0.4);
-    --operator-color: #ff6b6b;
-    --operator-bg: rgba(255, 107, 107, 0.1);
-    --operator-border: rgba(255, 107, 107, 0.15);
-    --operator-glow: rgba(255, 107, 107, 0.3);
-    --equals-bg: linear-gradient(135deg, #00d4aa, #00b4d8);
-    --radius: 20px;
-  }
-
-  html, body {
-    height: 100%;
-    overflow: hidden;
-    touch-action: manipulation;
-  }
-
-  body {
-    font-family: 'Sora', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100dvh;
-    position: relative;
-  }
-
-  /* Ambient background orbs */
-  body::before, body::after {
-    content: '';
-    position: fixed;
-    border-radius: 50%;
-    filter: blur(80px);
-    opacity: 0.3;
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  body::before {
-    width: 300px;
-    height: 300px;
-    background: radial-gradient(circle, rgba(0, 212, 170, 0.3), transparent 70%);
-    top: -80px;
-    right: -60px;
-    animation: floatOrb1 8s ease-in-out infinite;
-  }
-
-  body::after {
-    width: 250px;
-    height: 250px;
-    background: radial-gradient(circle, rgba(0, 180, 216, 0.25), transparent 70%);
-    bottom: -50px;
-    left: -40px;
-    animation: floatOrb2 10s ease-in-out infinite;
-  }
-
-  @keyframes floatOrb1 {
-    0%, 100% { transform: translate(0, 0); }
-    50% { transform: translate(-30px, 40px); }
-  }
-
-  @keyframes floatOrb2 {
-    0%, 100% { transform: translate(0, 0); }
-    50% { transform: translate(20px, -30px); }
-  }
-
-  .calculator {
-    width: 100%;
-    height: 100dvh;
-    max-width: 500px;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    z-index: 1;
-    animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(30px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  /* ── Display ── */
-  .display-area {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    padding: 20px 28px 24px;
-    position: relative;
-    min-height: 0;
-  }
-
-  .header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: auto;
-    padding-top: env(safe-area-inset-top, 16px);
-  }
-
-  .logo {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 12px var(--accent-glow);
-    animation: pulse 3s ease-in-out infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 0.6; transform: scale(1); }
-    50% { opacity: 1; transform: scale(1.2); }
-  }
-
-  .brand {
-    font-family: 'Sora', sans-serif;
-    font-size: 12px;
-    font-weight: 300;
-    letter-spacing: 4px;
-    text-transform: uppercase;
-    color: var(--text-dim);
-  }
-
-  .expression {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 15px;
-    font-weight: 300;
-    color: var(--text-dim);
-    text-align: right;
-    min-height: 22px;
-    word-break: break-all;
-    margin-bottom: 10px;
-    transition: all 0.3s ease;
-  }
-
-  .result {
-    font-family: 'Sora', sans-serif;
-    font-size: 58px;
-    font-weight: 200;
-    text-align: right;
-    letter-spacing: -2px;
-    color: var(--text);
-    line-height: 1.1;
-    word-break: break-all;
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .result.shrink { font-size: 42px; letter-spacing: -1px; }
-  .result.shrink-more { font-size: 32px; letter-spacing: 0; }
-
-  /* Separator line */
-  .separator {
-    height: 1px;
-    margin: 0 28px;
-    background: linear-gradient(90deg, transparent, var(--accent), transparent);
-    opacity: 0.2;
-    flex-shrink: 0;
-  }
-
-  /* ── Buttons Grid ── */
-  .buttons {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    padding: 20px 18px;
-    padding-bottom: max(20px, env(safe-area-inset-bottom, 20px));
-    flex-shrink: 0;
-  }
-
-  .btn {
-    aspect-ratio: 1.05;
-    border: 1px solid var(--glass-border);
-    border-radius: var(--radius);
-    font-family: 'Sora', sans-serif;
-    font-size: 22px;
-    font-weight: 400;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--glass);
-    color: var(--text);
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    position: relative;
-    overflow: hidden;
-    user-select: none;
-    -webkit-user-select: none;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-  }
-
-  .btn:active {
-    transform: scale(0.9);
-  }
-
-  .btn.number:active {
-    background: var(--surface-hover);
-    border-color: rgba(255, 255, 255, 0.15);
-    box-shadow: 0 0 30px rgba(255, 255, 255, 0.05);
-  }
-
-  /* Operators */
-  .btn.operator {
-    background: var(--operator-bg);
-    color: var(--operator-color);
-    border-color: var(--operator-border);
-    font-weight: 500;
-  }
-
-  .btn.operator:active {
-    background: rgba(255, 107, 107, 0.25);
-    box-shadow: 0 0 25px var(--operator-glow);
-    border-color: rgba(255, 107, 107, 0.4);
-  }
-
-  .btn.operator.active-op {
-    background: rgba(255, 107, 107, 0.2);
-    box-shadow: 0 0 20px var(--operator-glow), inset 0 0 15px rgba(255, 107, 107, 0.1);
-    border-color: rgba(255, 107, 107, 0.35);
-  }
-
-  /* Function buttons */
-  .btn.function {
-    background: var(--accent-dim);
-    color: var(--accent);
-    border-color: rgba(0, 212, 170, 0.12);
-    font-size: 17px;
-    font-weight: 500;
-  }
-
-  .btn.function:active {
-    background: rgba(0, 212, 170, 0.25);
-    box-shadow: 0 0 25px var(--accent-glow);
-    border-color: rgba(0, 212, 170, 0.35);
-  }
-
-  /* Equals */
-  .btn.equals {
-    background: var(--equals-bg);
-    color: #050510;
-    border: none;
-    font-weight: 600;
-    font-size: 28px;
-    box-shadow: 0 4px 25px rgba(0, 212, 170, 0.25);
-  }
-
-  .btn.equals:active {
-    box-shadow: 0 2px 40px rgba(0, 212, 170, 0.5);
-    filter: brightness(1.15);
-  }
-
-  /* Zero button */
-  .btn.zero {
-    grid-column: span 2;
-    aspect-ratio: auto;
-    height: 100%;
-  }
-
-  /* ── Ripple ── */
-  .ripple {
-    position: absolute;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.15);
-    transform: scale(0);
-    animation: rippleAnim 0.6s ease-out;
-    pointer-events: none;
-  }
-
-  @keyframes rippleAnim {
-    to { transform: scale(3.5); opacity: 0; }
-  }
-
-  /* ── Responsive ── */
-  @media (max-height: 620px) {
-    .btn { aspect-ratio: 1.35; font-size: 19px; }
-    .result { font-size: 44px; }
-    .buttons { gap: 8px; padding: 12px 14px; }
-    .display-area { padding: 14px 24px 16px; }
-  }
-
-  @media (min-height: 780px) {
-    .btn { aspect-ratio: 1; }
-    .result { font-size: 64px; }
-    .buttons { gap: 14px; padding: 24px 20px; }
-  }
-
-  /* ── Install Banner ── */
-  .install-banner {
-    position: fixed;
-    bottom: 20px;
-    left: 16px;
-    right: 16px;
-    background: rgba(15, 15, 30, 0.9);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid var(--glass-border);
-    border-radius: 16px;
-    padding: 16px 20px;
-    display: none;
-    align-items: center;
-    justify-content: space-between;
-    z-index: 100;
-    animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-  }
-
-  .install-banner.show { display: flex; }
-
-  @keyframes slideUp {
-    from { transform: translateY(100px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-  }
-
-  .install-banner p {
-    font-size: 14px;
-    font-weight: 400;
-    color: var(--text);
-  }
-
-  .install-actions {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-  }
-
-  .install-btn {
-    background: var(--equals-bg);
-    color: #050510;
-    border: none;
-    padding: 10px 18px;
-    border-radius: 12px;
-    font-family: 'Sora', sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-
-  .dismiss-btn {
-    background: none;
-    border: none;
-    color: var(--text-dim);
-    font-size: 13px;
-    cursor: pointer;
-    font-family: 'Sora', sans-serif;
-    padding: 10px;
-  }
-
-  /* Button appear animation */
-  .btn {
-    animation: btnAppear 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards;
-  }
-  .buttons .btn:nth-child(1) { animation-delay: 0.05s; }
-  .buttons .btn:nth-child(2) { animation-delay: 0.08s; }
-  .buttons .btn:nth-child(3) { animation-delay: 0.11s; }
-  .buttons .btn:nth-child(4) { animation-delay: 0.14s; }
-  .buttons .btn:nth-child(5) { animation-delay: 0.17s; }
-  .buttons .btn:nth-child(6) { animation-delay: 0.20s; }
-  .buttons .btn:nth-child(7) { animation-delay: 0.23s; }
-  .buttons .btn:nth-child(8) { animation-delay: 0.26s; }
-  .buttons .btn:nth-child(9) { animation-delay: 0.29s; }
-  .buttons .btn:nth-child(10) { animation-delay: 0.32s; }
-  .buttons .btn:nth-child(11) { animation-delay: 0.35s; }
-  .buttons .btn:nth-child(12) { animation-delay: 0.38s; }
-  .buttons .btn:nth-child(13) { animation-delay: 0.41s; }
-  .buttons .btn:nth-child(14) { animation-delay: 0.44s; }
-  .buttons .btn:nth-child(15) { animation-delay: 0.47s; }
-  .buttons .btn:nth-child(16) { animation-delay: 0.50s; }
-  .buttons .btn:nth-child(17) { animation-delay: 0.53s; }
-  .buttons .btn:nth-child(18) { animation-delay: 0.56s; }
-  .buttons .btn:nth-child(19) { animation-delay: 0.59s; }
-
-  @keyframes btnAppear {
-    from { opacity: 0; transform: scale(0.8) translateY(10px); }
-    to { opacity: 1; transform: scale(1) translateY(0); }
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#102a43" />
+  <link rel="manifest" href="manifest.json" />
+  <title>Wachbuch App</title>
+  <style>
+    :root {
+      --bg: #0b1f33;
+      --surface: #102a43;
+      --surface-2: #163a5f;
+      --text: #f0f4f8;
+      --muted: #bcccdc;
+      --accent: #2cb1bc;
+      --danger: #d64545;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, Arial, sans-serif;
+      background: linear-gradient(180deg, var(--bg), #081626);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .container {
+      width: min(980px, 94vw);
+      margin: 24px auto;
+      display: grid;
+      gap: 16px;
+    }
+    .card {
+      background: rgba(16, 42, 67, 0.85);
+      border: 1px solid rgba(240, 244, 248, 0.15);
+      border-radius: 14px;
+      padding: 16px;
+    }
+    h1 { margin: 0 0 6px; font-size: 1.6rem; }
+    p { margin: 0; color: var(--muted); }
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+    label { font-size: 0.85rem; color: var(--muted); display: block; margin-bottom: 4px; }
+    input, textarea, select, button {
+      width: 100%; border-radius: 10px; border: 1px solid rgba(240, 244, 248, 0.2);
+      background: var(--surface-2); color: var(--text); padding: 10px;
+    }
+    textarea { min-height: 80px; resize: vertical; }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+    button { cursor: pointer; background: var(--accent); color: #062226; border: none; font-weight: 700; }
+    button.secondary { background: #486581; color: #fff; }
+    button.danger { background: var(--danger); color: #fff; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th, td { padding: 10px; border-bottom: 1px solid rgba(240, 244, 248, 0.1); text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; font-size: 0.85rem; }
+    .pill { font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; background: #334e68; }
+  </style>
 </head>
 <body>
+  <div class="container">
+    <section class="card">
+      <h1>📘 Wachbuch</h1>
+      <p>Dokumentiere Vorfälle, Rundgänge und Übergaben sicher lokal auf deinem Gerät.</p>
+      <div class="form-grid">
+        <div>
+          <label for="date">Datum & Uhrzeit</label>
+          <input id="date" type="datetime-local" />
+        </div>
+        <div>
+          <label for="guard">Mitarbeiter</label>
+          <input id="guard" type="text" placeholder="z. B. M. Beispiel" />
+        </div>
+        <div>
+          <label for="type">Kategorie</label>
+          <select id="type">
+            <option>Rundgang</option>
+            <option>Vorkommnis</option>
+            <option>Technik</option>
+            <option>Übergabe</option>
+          </select>
+        </div>
+        <div>
+          <label for="location">Ort</label>
+          <input id="location" type="text" placeholder="z. B. Tor 2" />
+        </div>
+      </div>
+      <div style="margin-top:10px;">
+        <label for="details">Details</label>
+        <textarea id="details" placeholder="Beschreibung, Maßnahmen, Besonderheiten..."></textarea>
+      </div>
+      <div class="actions">
+        <button id="saveBtn">Eintrag speichern</button>
+        <button id="clearFormBtn" class="secondary" type="button">Formular leeren</button>
+      </div>
+    </section>
 
-<div class="calculator">
-  <div class="display-area">
-    <div class="header">
-      <div class="logo"></div>
-      <span class="brand">Benny's Rechner</span>
-    </div>
-    <div class="expression" id="expression"></div>
-    <div class="result" id="display">0</div>
+    <section class="card">
+      <div class="form-grid" style="margin-top:0;">
+        <div>
+          <label for="filterType">Filter Kategorie</label>
+          <select id="filterType">
+            <option value="">Alle</option>
+            <option>Rundgang</option>
+            <option>Vorkommnis</option>
+            <option>Technik</option>
+            <option>Übergabe</option>
+          </select>
+        </div>
+        <div>
+          <label for="search">Suche</label>
+          <input id="search" type="search" placeholder="Mitarbeiter, Ort, Details" />
+        </div>
+      </div>
+      <div class="actions">
+        <button id="exportBtn" class="secondary" type="button">JSON exportieren</button>
+        <button id="deleteAllBtn" class="danger" type="button">Alle löschen</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Zeit</th><th>Mitarbeiter</th><th>Kategorie</th><th>Ort</th><th>Details</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="entries"></tbody>
+      </table>
+    </section>
   </div>
 
-  <div class="separator"></div>
+  <script>
+    const STORAGE_KEY = 'wachbuch-eintraege-v1';
+    const entriesEl = document.getElementById('entries');
+    const fields = {
+      date: document.getElementById('date'),
+      guard: document.getElementById('guard'),
+      type: document.getElementById('type'),
+      location: document.getElementById('location'),
+      details: document.getElementById('details')
+    };
 
-  <div class="buttons">
-    <button class="btn function" data-action="clear">AC</button>
-    <button class="btn function" data-action="sign">+/−</button>
-    <button class="btn function" data-action="percent">%</button>
-    <button class="btn operator" data-action="operator" data-value="÷">÷</button>
+    const filterType = document.getElementById('filterType');
+    const search = document.getElementById('search');
 
-    <button class="btn number" data-value="7">7</button>
-    <button class="btn number" data-value="8">8</button>
-    <button class="btn number" data-value="9">9</button>
-    <button class="btn operator" data-action="operator" data-value="×">×</button>
+    const now = new Date();
+    fields.date.value = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 
-    <button class="btn number" data-value="4">4</button>
-    <button class="btn number" data-value="5">5</button>
-    <button class="btn number" data-value="6">6</button>
-    <button class="btn operator" data-action="operator" data-value="−">−</button>
+    const loadEntries = () => JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    const saveEntries = (items) => localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
 
-    <button class="btn number" data-value="1">1</button>
-    <button class="btn number" data-value="2">2</button>
-    <button class="btn number" data-value="3">3</button>
-    <button class="btn operator" data-action="operator" data-value="+">+</button>
+    function render() {
+      const typeFilter = filterType.value.trim().toLowerCase();
+      const q = search.value.trim().toLowerCase();
+      const data = loadEntries().filter(e => {
+        const matchesType = !typeFilter || e.type.toLowerCase() === typeFilter;
+        const haystack = `${e.guard} ${e.location} ${e.details}`.toLowerCase();
+        const matchesSearch = !q || haystack.includes(q);
+        return matchesType && matchesSearch;
+      });
 
-    <button class="btn number zero" data-value="0">0</button>
-    <button class="btn number" data-value=".">.</button>
-    <button class="btn equals" data-action="equals">=</button>
-  </div>
-</div>
-
-<!-- Install Banner -->
-<div class="install-banner" id="installBanner">
-  <p>App installieren?</p>
-  <div class="install-actions">
-    <button class="dismiss-btn" id="dismissBtn">Nein</button>
-    <button class="install-btn" id="installBtn">Installieren</button>
-  </div>
-</div>
-
-<script>
-  // ── Service Worker ──
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js');
-  }
-
-  // ── PWA Install ──
-  let deferredPrompt;
-  const installBanner = document.getElementById('installBanner');
-  const installBtn = document.getElementById('installBtn');
-  const dismissBtn = document.getElementById('dismissBtn');
-
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    installBanner.classList.add('show');
-  });
-
-  installBtn.addEventListener('click', async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      await deferredPrompt.userChoice;
-      deferredPrompt = null;
+      entriesEl.innerHTML = data.map(e => `
+        <tr>
+          <td>${new Date(e.date).toLocaleString('de-DE')}</td>
+          <td>${escapeHtml(e.guard)}</td>
+          <td><span class="pill">${escapeHtml(e.type)}</span></td>
+          <td>${escapeHtml(e.location)}</td>
+          <td>${escapeHtml(e.details)}</td>
+          <td><button class="danger" data-id="${e.id}">X</button></td>
+        </tr>
+      `).join('');
     }
-    installBanner.classList.remove('show');
-  });
 
-  dismissBtn.addEventListener('click', () => installBanner.classList.remove('show'));
-
-  // ── Calculator Logic ──
-  const display = document.getElementById('display');
-  const expression = document.getElementById('expression');
-
-  let currentInput = '0';
-  let firstNumber = null;
-  let operator = null;
-  let waitingForSecond = false;
-
-  function updateDisplay() {
-    display.textContent = currentInput;
-    const len = currentInput.length;
-    display.classList.remove('shrink', 'shrink-more');
-    if (len > 12) display.classList.add('shrink-more');
-    else if (len > 8) display.classList.add('shrink');
-  }
-
-  function formatNumber(num) {
-    if (Number.isInteger(num) && Math.abs(num) < 1e15) {
-      return num.toLocaleString('de-DE');
+    function escapeHtml(text) {
+      return text.replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
     }
-    return parseFloat(num.toPrecision(10)).toString().replace('.', ',');
-  }
 
-  function calculate(a, op, b) {
-    switch (op) {
-      case '+': return a + b;
-      case '−': return a - b;
-      case '×': return a * b;
-      case '÷': return b !== 0 ? a / b : 'Fehler';
-    }
-  }
+    document.getElementById('saveBtn').addEventListener('click', () => {
+      const entry = {
+        id: crypto.randomUUID(),
+        date: fields.date.value || new Date().toISOString(),
+        guard: fields.guard.value.trim(),
+        type: fields.type.value,
+        location: fields.location.value.trim(),
+        details: fields.details.value.trim()
+      };
 
-  function clearActiveOp() {
-    document.querySelectorAll('.btn.operator').forEach(b => b.classList.remove('active-op'));
-  }
-
-  function setActiveOp(value) {
-    clearActiveOp();
-    document.querySelectorAll('.btn.operator').forEach(b => {
-      if (b.dataset.value === value) b.classList.add('active-op');
-    });
-  }
-
-  function addRipple(e, btn) {
-    const ripple = document.createElement('span');
-    ripple.classList.add('ripple');
-    const rect = btn.getBoundingClientRect();
-    const cx = e.touches ? e.touches[0].clientX : e.clientX;
-    const cy = e.touches ? e.touches[0].clientY : e.clientY;
-    const size = Math.max(rect.width, rect.height);
-    ripple.style.width = ripple.style.height = size + 'px';
-    ripple.style.left = (cx - rect.left - size / 2) + 'px';
-    ripple.style.top = (cy - rect.top - size / 2) + 'px';
-    btn.appendChild(ripple);
-    setTimeout(() => ripple.remove(), 600);
-  }
-
-  document.querySelectorAll('.btn').forEach(btn => {
-    btn.addEventListener('pointerdown', (e) => addRipple(e, btn));
-
-    btn.addEventListener('click', () => {
-      const action = btn.dataset.action;
-      const value = btn.dataset.value;
-
-      if (!action) {
-        clearActiveOp();
-        if (waitingForSecond) {
-          currentInput = value === '.' ? '0.' : value;
-          waitingForSecond = false;
-        } else {
-          if (value === '.') {
-            if (!currentInput.includes('.')) currentInput += '.';
-          } else {
-            currentInput = currentInput === '0' ? value : currentInput + value;
-          }
-        }
-        updateDisplay();
+      if (!entry.guard || !entry.location || !entry.details) {
+        alert('Bitte Mitarbeiter, Ort und Details ausfüllen.');
         return;
       }
 
-      switch (action) {
-        case 'clear':
-          currentInput = '0';
-          firstNumber = null;
-          operator = null;
-          waitingForSecond = false;
-          expression.textContent = '';
-          clearActiveOp();
-          break;
-
-        case 'sign':
-          if (currentInput !== '0') {
-            currentInput = currentInput.startsWith('-')
-              ? currentInput.slice(1)
-              : '-' + currentInput;
-          }
-          break;
-
-        case 'percent':
-          currentInput = String(parseFloat(currentInput) / 100);
-          break;
-
-        case 'operator':
-          clearActiveOp();
-          const inputNum = parseFloat(currentInput);
-          if (firstNumber !== null && !waitingForSecond) {
-            const result = calculate(firstNumber, operator, inputNum);
-            if (result === 'Fehler') {
-              currentInput = 'Fehler';
-              firstNumber = null;
-              operator = null;
-              expression.textContent = '';
-              updateDisplay();
-              return;
-            }
-            firstNumber = result;
-            currentInput = formatNumber(result);
-          } else {
-            firstNumber = inputNum;
-          }
-          operator = value;
-          waitingForSecond = true;
-          expression.textContent = `${formatNumber(firstNumber)} ${value}`;
-          setActiveOp(value);
-          break;
-
-        case 'equals':
-          clearActiveOp();
-          if (firstNumber !== null && operator) {
-            const secondNum = parseFloat(currentInput);
-            const result = calculate(firstNumber, operator, secondNum);
-            expression.textContent = `${formatNumber(firstNumber)} ${operator} ${formatNumber(secondNum)} =`;
-            currentInput = result === 'Fehler' ? 'Fehler' : formatNumber(result);
-            firstNumber = null;
-            operator = null;
-            waitingForSecond = false;
-          }
-          break;
-      }
-
-      updateDisplay();
+      const all = loadEntries();
+      all.unshift(entry);
+      saveEntries(all);
+      fields.details.value = '';
+      render();
     });
-  });
 
-  document.addEventListener('dblclick', e => e.preventDefault());
-</script>
+    document.getElementById('clearFormBtn').addEventListener('click', () => {
+      fields.guard.value = '';
+      fields.location.value = '';
+      fields.details.value = '';
+    });
 
+    entriesEl.addEventListener('click', (e) => {
+      if (e.target.matches('button[data-id]')) {
+        const id = e.target.dataset.id;
+        saveEntries(loadEntries().filter(x => x.id !== id));
+        render();
+      }
+    });
+
+    document.getElementById('deleteAllBtn').addEventListener('click', () => {
+      if (confirm('Wirklich alle Einträge löschen?')) {
+        saveEntries([]);
+        render();
+      }
+    });
+
+    document.getElementById('exportBtn').addEventListener('click', () => {
+      const blob = new Blob([JSON.stringify(loadEntries(), null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `wachbuch-export-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    filterType.addEventListener('change', render);
+    search.addEventListener('input', render);
+
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
+
+    render();
+  </script>
 </body>
 </html>

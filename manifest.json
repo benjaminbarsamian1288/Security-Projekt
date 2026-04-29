@@ -1,11 +1,11 @@
 {
-  "name": "Benny's Taschenrechner",
-  "short_name": "Bennys Rechner",
-  "description": "Benny's persönlicher Taschenrechner",
+  "name": "Wachbuch App",
+  "short_name": "Wachbuch",
+  "description": "Digitale Erfassung von Wachbucheinträgen",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#050510",
-  "theme_color": "#00d4aa",
+  "background_color": "#0b1f33",
+  "theme_color": "#102a43",
   "orientation": "portrait",
   "icons": [
     {
