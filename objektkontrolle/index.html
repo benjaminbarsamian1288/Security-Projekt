@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0f2a4a">
+<title>Objektkontrolle</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root {
+    --blau: #0f2a4a;
+    --blau-hell: #1c4373;
+    --gruen: #2ea05a;
+    --rot: #c0392b;
+    --gelb: #d68910;
+    --grau: #6b7683;
+    --bg: #f2f4f7;
+    --karte: #ffffff;
+    --text: #1c2430;
+    --rand: #dde2e9;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-tap-highlight-color: transparent;
+  }
+  header {
+    background: var(--blau);
+    color: #fff;
+    padding: calc(env(safe-area-inset-top, 0px) + 14px) 16px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  header h1 { font-size: 1.1rem; font-weight: 600; flex: 1; }
+  .kopf-btn {
+    background: rgba(255,255,255,.12);
+    border: none;
+    color: #fff;
+    font-size: 1rem;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  main { padding: 16px; max-width: 640px; margin: 0 auto; padding-bottom: 90px; }
+  .karte {
+    background: var(--karte);
+    border: 1px solid var(--rand);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  .karte h2 { font-size: 0.95rem; color: var(--grau); font-weight: 600; margin-bottom: 10px; text-transform: uppercase; letter-spacing: .03em; }
+  button.primaer {
+    display: block;
+    width: 100%;
+    background: var(--blau);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button.primaer:active { background: var(--blau-hell); }
+  button.sekundaer {
+    display: block;
+    width: 100%;
+    background: #fff;
+    color: var(--blau);
+    border: 1.5px solid var(--blau);
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+  }
+  select, input[type=text], textarea {
+    width: 100%;
+    padding: 12px;
+    font-size: 1rem;
+    border: 1px solid var(--rand);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--text);
+    margin-bottom: 10px;
+    font-family: inherit;
+  }
+  textarea { resize: vertical; min-height: 60px; }
+  label { display: block; font-size: .88rem; color: var(--grau); margin-bottom: 4px; font-weight: 600; }
+  .listenzeile {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 4px;
+    border-bottom: 1px solid var(--rand);
+  }
+  .listenzeile:last-child { border-bottom: none; }
+  .listenzeile .info { flex: 1; min-width: 0; }
+  .listenzeile .titel { font-weight: 600; }
+  .listenzeile .unter { font-size: .84rem; color: var(--grau); margin-top: 2px; }
+  .mini-btn {
+    background: #eef1f5;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: .85rem;
+    cursor: pointer;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .mini-btn.rot { color: var(--rot); }
+  .pruefpunkt {
+    border: 1px solid var(--rand);
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 10px;
+    background: #fff;
+  }
+  .pruefpunkt .pp-name { font-weight: 600; margin-bottom: 10px; }
+  .status-reihe { display: flex; gap: 8px; }
+  .status-btn {
+    flex: 1;
+    padding: 10px 4px;
+    border-radius: 8px;
+    border: 1.5px solid var(--rand);
+    background: #fff;
+    font-size: .9rem;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--grau);
+  }
+  .status-btn.ok.aktiv { background: var(--gruen); border-color: var(--gruen); color: #fff; }
+  .status-btn.mangel.aktiv { background: var(--rot); border-color: var(--rot); color: #fff; }
+  .status-btn.ng.aktiv { background: var(--gelb); border-color: var(--gelb); color: #fff; }
+  .mangel-notiz { margin-top: 10px; display: none; }
+  .mangel-notiz.sichtbar { display: block; }
+  .abzeichen {
+    font-size: .78rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 999px;
+    color: #fff;
+    white-space: nowrap;
+  }
+  .abzeichen.gruen { background: var(--gruen); }
+  .abzeichen.rot { background: var(--rot); }
+  .abzeichen.gelb { background: var(--gelb); }
+  .fortschritt {
+    height: 6px;
+    background: var(--rand);
+    border-radius: 999px;
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .fortschritt > div { height: 100%; background: var(--gruen); width: 0; transition: width .2s; }
+  pre.bericht {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: inherit;
+    font-size: .95rem;
+    line-height: 1.5;
+  }
+  .leer { color: var(--grau); text-align: center; padding: 18px 0; font-size: .92rem; }
+  .hinweis {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--text);
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 999px;
+    font-size: .9rem;
+    transition: transform .25s;
+    z-index: 50;
+    max-width: 90vw;
+    text-align: center;
+  }
+  .hinweis.sichtbar { transform: translateX(-50%) translateY(0); }
+  .versteckt { display: none !important; }
+</style>
+</head>
+<body>
+
+<header>
+  <button class="kopf-btn versteckt" id="btnZurueck" onclick="App.zurueck()">&#8592;</button>
+  <h1 id="kopfTitel">Objektkontrolle</h1>
+  <button class="kopf-btn" id="btnObjekte" onclick="App.zeige('objekte')">Objekte</button>
+</header>
+
+<main>
+  <!-- START -->
+  <section id="ansicht-start">
+    <div class="karte">
+      <h2>Neue Kontrolle</h2>
+      <label for="selObjekt">Objekt</label>
+      <select id="selObjekt"></select>
+      <label for="inpPruefer">Kontrolleur/in</label>
+      <input type="text" id="inpPruefer" placeholder="Name" autocomplete="name">
+      <button class="primaer" onclick="App.kontrolleStarten()">Kontrolle starten</button>
+    </div>
+    <div class="karte">
+      <h2>Letzte Kontrollen</h2>
+      <div id="listeHistorie"></div>
+    </div>
+  </section>
+
+  <!-- OBJEKTE -->
+  <section id="ansicht-objekte" class="versteckt">
+    <div class="karte">
+      <h2>Neues Objekt</h2>
+      <label for="inpObjName">Objektname</label>
+      <input type="text" id="inpObjName" placeholder="z. B. Logistikzentrum Nord">
+      <label for="inpObjKunde">Kunde / Ort (optional)</label>
+      <input type="text" id="inpObjKunde" placeholder="z. B. Musterfirma GmbH, Landshut">
+      <button class="primaer" onclick="App.objektAnlegen()">Objekt anlegen</button>
+    </div>
+    <div class="karte">
+      <h2>Meine Objekte</h2>
+      <div id="listeObjekte"></div>
+    </div>
+  </section>
+
+  <!-- PRÜFPUNKTE BEARBEITEN -->
+  <section id="ansicht-punkte" class="versteckt">
+    <div class="karte">
+      <h2 id="punkteTitel">Prüfpunkte</h2>
+      <div id="listePunkte"></div>
+      <label for="inpNeuerPunkt" style="margin-top:10px">Neuer Prüfpunkt</label>
+      <input type="text" id="inpNeuerPunkt" placeholder="z. B. Feuerlöscher geprüft &amp; frei zugänglich">
+      <button class="sekundaer" onclick="App.punktHinzu()">Prüfpunkt hinzufügen</button>
+    </div>
+  </section>
+
+  <!-- KONTROLLE -->
+  <section id="ansicht-kontrolle" class="versteckt">
+    <div class="fortschritt"><div id="fortschrittBalken"></div></div>
+    <div id="listeKontrolle"></div>
+    <div class="karte">
+      <label for="inpBemerkung">Allgemeine Bemerkungen (optional)</label>
+      <textarea id="inpBemerkung" placeholder="Besonderheiten, Übergaben, Hinweise …"></textarea>
+      <button class="primaer" onclick="App.kontrolleAbschliessen()">Kontrolle abschließen</button>
+    </div>
+  </section>
+
+  <!-- BERICHT -->
+  <section id="ansicht-bericht" class="versteckt">
+    <div class="karte">
+      <pre class="bericht" id="berichtText"></pre>
+    </div>
+    <button class="primaer" onclick="App.berichtTeilen()">Bericht teilen</button>
+    <button class="sekundaer" onclick="App.berichtKopieren()">In Zwischenablage kopieren</button>
+    <button class="sekundaer" onclick="App.zeige('start')">Zur Startseite</button>
+  </section>
+</main>
+
+<div class="hinweis" id="hinweis"></div>
+
+<script>
+const STANDARD_PUNKTE = [
+  "Außenhaut: Türen und Fenster verschlossen",
+  "Perimeter / Zaun ohne Beschädigung",
+  "Beleuchtung funktionsfähig",
+  "Flucht- und Rettungswege frei",
+  "Notausgänge frei und funktionsfähig",
+  "Feuerlöscher vorhanden und zugänglich",
+  "Brandschutztüren geschlossen",
+  "Alarmanlage (EMA) scharf / ohne Störung",
+  "Schließanlage / Schlüsselbestand vollständig",
+  "Wachbuch / Dokumentation geführt",
+  "Sauberkeit und Ordnung im Objekt"
+];
+
+const Speicher = {
+  key: "objektkontrolle_v1",
+  laden() {
+    try {
+      const d = JSON.parse(localStorage.getItem(this.key));
+      if (d && Array.isArray(d.objekte) && Array.isArray(d.kontrollen)) return d;
+    } catch (e) {}
+    return { objekte: [], kontrollen: [], pruefer: "" };
+  },
+  sichern(d) { localStorage.setItem(this.key, JSON.stringify(d)); }
+};
+
+const App = {
+  daten: Speicher.laden(),
+  ansicht: "start",
+  aktiveKontrolle: null,
+  punkteObjektId: null,
+  letzterBericht: "",
+
+  zeige(name) {
+    if (name !== "kontrolle" && this.ansicht === "kontrolle" && this.aktiveKontrolle) {
+      if (!confirm("Laufende Kontrolle verwerfen?")) return;
+      this.aktiveKontrolle = null;
+    }
+    this.ansicht = name;
+    document.querySelectorAll("main > section").forEach(s => s.classList.add("versteckt"));
+    document.getElementById("ansicht-" + name).classList.remove("versteckt");
+    const titel = { start: "Objektkontrolle", objekte: "Objekte verwalten", punkte: "Prüfpunkte", kontrolle: "Kontrolle läuft", bericht: "Kontrollbericht" };
+    document.getElementById("kopfTitel").textContent = titel[name];
+    document.getElementById("btnZurueck").classList.toggle("versteckt", name === "start");
+    document.getElementById("btnObjekte").classList.toggle("versteckt", name !== "start");
+    if (name === "start") { this.renderObjektauswahl(); this.renderHistorie(); }
+    if (name === "objekte") this.renderObjekte();
+    if (name === "punkte") this.renderPunkte();
+    window.scrollTo(0, 0);
+  },
+
+  zurueck() {
+    if (this.ansicht === "punkte") this.zeige("objekte");
+    else this.zeige("start");
+  },
+
+  hinweis(text) {
+    const el = document.getElementById("hinweis");
+    el.textContent = text;
+    el.classList.add("sichtbar");
+    clearTimeout(this._hinweisTimer);
+    this._hinweisTimer = setTimeout(() => el.classList.remove("sichtbar"), 2200);
+  },
+
+  esc(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  },
+
+  // ---------- Objekte ----------
+  objektAnlegen() {
+    const name = document.getElementById("inpObjName").value.trim();
+    if (!name) { this.hinweis("Bitte einen Objektnamen eingeben."); return; }
+    const kunde = document.getElementById("inpObjKunde").value.trim();
+    this.daten.objekte.push({
+      id: "obj" + Date.now(),
+      name, kunde,
+      punkte: [...STANDARD_PUNKTE]
+    });
+    Speicher.sichern(this.daten);
+    document.getElementById("inpObjName").value = "";
+    document.getElementById("inpObjKunde").value = "";
+    this.renderObjekte();
+    this.hinweis("Objekt angelegt.");
+  },
+
+  objektLoeschen(id) {
+    const obj = this.daten.objekte.find(o => o.id === id);
+    if (!obj) return;
+    if (!confirm(`Objekt „${obj.name}“ wirklich löschen?`)) return;
+    this.daten.objekte = this.daten.objekte.filter(o => o.id !== id);
+    Speicher.sichern(this.daten);
+    this.renderObjekte();
+  },
+
+  renderObjekte() {
+    const ziel = document.getElementById("listeObjekte");
+    if (!this.daten.objekte.length) {
+      ziel.innerHTML = '<div class="leer">Noch keine Objekte angelegt.</div>';
+      return;
+    }
+    ziel.innerHTML = this.daten.objekte.map(o => `
+      <div class="listenzeile">
+        <div class="info">
+          <div class="titel">${this.esc(o.name)}</div>
+          <div class="unter">${this.esc(o.kunde || "")}${o.kunde ? " · " : ""}${o.punkte.length} Prüfpunkte</div>
+        </div>
+        <button class="mini-btn" onclick="App.punkteOeffnen('${o.id}')">Prüfpunkte</button>
+        <button class="mini-btn rot" onclick="App.objektLoeschen('${o.id}')">Löschen</button>
+      </div>`).join("");
+  },
+
+  renderObjektauswahl() {
+    const sel = document.getElementById("selObjekt");
+    if (!this.daten.objekte.length) {
+      sel.innerHTML = '<option value="">– zuerst Objekt anlegen –</option>';
+    } else {
+      sel.innerHTML = this.daten.objekte.map(o =>
+        `<option value="${o.id}">${this.esc(o.name)}</option>`).join("");
+    }
+    document.getElementById("inpPruefer").value = this.daten.pruefer || "";
+  },
+
+  // ---------- Prüfpunkte ----------
+  punkteOeffnen(id) {
+    this.punkteObjektId = id;
+    this.zeige("punkte");
+  },
+
+  renderPunkte() {
+    const obj = this.daten.objekte.find(o => o.id === this.punkteObjektId);
+    if (!obj) { this.zeige("objekte"); return; }
+    document.getElementById("punkteTitel").textContent = "Prüfpunkte – " + obj.name;
+    const ziel = document.getElementById("listePunkte");
+    if (!obj.punkte.length) {
+      ziel.innerHTML = '<div class="leer">Keine Prüfpunkte vorhanden.</div>';
+      return;
+    }
+    ziel.innerHTML = obj.punkte.map((p, i) => `
+      <div class="listenzeile">
+        <div class="info"><div class="titel" style="font-weight:500">${this.esc(p)}</div></div>
+        <button class="mini-btn rot" onclick="App.punktLoeschen(${i})">&#10005;</button>
+      </div>`).join("");
+  },
+
+  punktHinzu() {
+    const inp = document.getElementById("inpNeuerPunkt");
+    const text = inp.value.trim();
+    if (!text) return;
+    const obj = this.daten.objekte.find(o => o.id === this.punkteObjektId);
+    if (!obj) return;
+    obj.punkte.push(text);
+    Speicher.sichern(this.daten);
+    inp.value = "";
+    this.renderPunkte();
+  },
+
+  punktLoeschen(index) {
+    const obj = this.daten.objekte.find(o => o.id === this.punkteObjektId);
+    if (!obj) return;
+    obj.punkte.splice(index, 1);
+    Speicher.sichern(this.daten);
+    this.renderPunkte();
+  },
+
+  // ---------- Kontrolle ----------
+  kontrolleStarten() {
+    const objId = document.getElementById("selObjekt").value;
+    const obj = this.daten.objekte.find(o => o.id === objId);
+    if (!obj) { this.hinweis("Bitte zuerst ein Objekt anlegen."); return; }
+    if (!obj.punkte.length) { this.hinweis("Dieses Objekt hat keine Prüfpunkte."); return; }
+    const pruefer = document.getElementById("inpPruefer").value.trim();
+    if (!pruefer) { this.hinweis("Bitte Namen des Kontrolleurs eingeben."); return; }
+    this.daten.pruefer = pruefer;
+    Speicher.sichern(this.daten);
+    this.aktiveKontrolle = {
+      id: "k" + Date.now(),
+      objektId: obj.id,
+      objektName: obj.name,
+      kunde: obj.kunde || "",
+      pruefer,
+      beginn: new Date().toISOString(),
+      ergebnisse: obj.punkte.map(p => ({ punkt: p, status: null, notiz: "" }))
+    };
+    this.renderKontrolle();
+    this.zeige("kontrolle");
+  },
+
+  renderKontrolle() {
+    const k = this.aktiveKontrolle;
+    const ziel = document.getElementById("listeKontrolle");
+    ziel.innerHTML = k.ergebnisse.map((e, i) => `
+      <div class="pruefpunkt">
+        <div class="pp-name">${i + 1}. ${this.esc(e.punkt)}</div>
+        <div class="status-reihe">
+          <button class="status-btn ok ${e.status === "ok" ? "aktiv" : ""}" onclick="App.setzeStatus(${i},'ok')">OK</button>
+          <button class="status-btn mangel ${e.status === "mangel" ? "aktiv" : ""}" onclick="App.setzeStatus(${i},'mangel')">Mangel</button>
+          <button class="status-btn ng ${e.status === "ng" ? "aktiv" : ""}" onclick="App.setzeStatus(${i},'ng')">n. geprüft</button>
+        </div>
+        <div class="mangel-notiz ${e.status === "mangel" ? "sichtbar" : ""}">
+          <label>Mangel beschreiben</label>
+          <textarea data-index="${i}" oninput="App.setzeNotiz(this)" placeholder="Was wurde festgestellt?">${this.esc(e.notiz)}</textarea>
+        </div>
+      </div>`).join("");
+    this.aktualisiereFortschritt();
+  },
+
+  setzeStatus(index, status) {
+    this.aktiveKontrolle.ergebnisse[index].status = status;
+    this.renderKontrolle();
+  },
+
+  setzeNotiz(el) {
+    this.aktiveKontrolle.ergebnisse[Number(el.dataset.index)].notiz = el.value;
+  },
+
+  aktualisiereFortschritt() {
+    const k = this.aktiveKontrolle;
+    const fertig = k.ergebnisse.filter(e => e.status !== null).length;
+    document.getElementById("fortschrittBalken").style.width =
+      Math.round(100 * fertig / k.ergebnisse.length) + "%";
+  },
+
+  kontrolleAbschliessen() {
+    const k = this.aktiveKontrolle;
+    const offen = k.ergebnisse.filter(e => e.status === null).length;
+    if (offen > 0 && !confirm(`${offen} Prüfpunkt(e) sind noch offen und werden als „nicht geprüft“ übernommen. Trotzdem abschließen?`)) return;
+    k.ergebnisse.forEach(e => { if (e.status === null) e.status = "ng"; });
+    k.bemerkung = document.getElementById("inpBemerkung").value.trim();
+    k.ende = new Date().toISOString();
+    this.daten.kontrollen.unshift(k);
+    if (this.daten.kontrollen.length > 100) this.daten.kontrollen.length = 100;
+    Speicher.sichern(this.daten);
+    const fertig = k;
+    this.aktiveKontrolle = null;
+    document.getElementById("inpBemerkung").value = "";
+    this.berichtAnzeigen(fertig);
+  },
+
+  // ---------- Bericht ----------
+  berichtErzeugen(k) {
+    const f = iso => new Date(iso).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" });
+    const maengel = k.ergebnisse.filter(e => e.status === "mangel");
+    const okZahl = k.ergebnisse.filter(e => e.status === "ok").length;
+    const ngZahl = k.ergebnisse.filter(e => e.status === "ng").length;
+    const symbol = { ok: "[OK]", mangel: "[MANGEL]", ng: "[N.GEPRÜFT]" };
+    let t = "KONTROLLBERICHT – OBJEKTKONTROLLE\n";
+    t += "==================================\n\n";
+    t += `Objekt:       ${k.objektName}\n`;
+    if (k.kunde) t += `Kunde/Ort:    ${k.kunde}\n`;
+    t += `Kontrolleur:  ${k.pruefer}\n`;
+    t += `Beginn:       ${f(k.beginn)} Uhr\n`;
+    t += `Ende:         ${f(k.ende)} Uhr\n\n`;
+    t += `Ergebnis: ${okZahl} OK · ${maengel.length} Mangel/Mängel · ${ngZahl} nicht geprüft\n\n`;
+    t += "PRÜFPUNKTE\n----------------------------------\n";
+    k.ergebnisse.forEach((e, i) => {
+      t += `${i + 1}. ${symbol[e.status]} ${e.punkt}\n`;
+      if (e.status === "mangel" && e.notiz) t += `   → ${e.notiz}\n`;
+    });
+    if (maengel.length) {
+      t += "\nFESTGESTELLTE MÄNGEL\n----------------------------------\n";
+      maengel.forEach((e, i) => {
+        t += `${i + 1}. ${e.punkt}${e.notiz ? " – " + e.notiz : ""}\n`;
+      });
+    }
+    if (k.bemerkung) t += `\nBEMERKUNGEN\n----------------------------------\n${k.bemerkung}\n`;
+    t += "\n(Erstellt mit der Objektkontrolle-App)";
+    return t;
+  },
+
+  berichtAnzeigen(k) {
+    this.letzterBericht = this.berichtErzeugen(k);
+    document.getElementById("berichtText").textContent = this.letzterBericht;
+    this.zeige("bericht");
+  },
+
+  async berichtTeilen() {
+    if (navigator.share) {
+      try { await navigator.share({ title: "Kontrollbericht", text: this.letzterBericht }); }
+      catch (e) { /* Abbruch durch Nutzer */ }
+    } else {
+      this.berichtKopieren();
+    }
+  },
+
+  async berichtKopieren() {
+    try {
+      await navigator.clipboard.writeText(this.letzterBericht);
+      this.hinweis("Bericht in Zwischenablage kopiert.");
+    } catch (e) {
+      this.hinweis("Kopieren nicht möglich – bitte Text manuell markieren.");
+    }
+  },
+
+  // ---------- Historie ----------
+  renderHistorie() {
+    const ziel = document.getElementById("listeHistorie");
+    if (!this.daten.kontrollen.length) {
+      ziel.innerHTML = '<div class="leer">Noch keine Kontrollen durchgeführt.</div>';
+      return;
+    }
+    const f = iso => new Date(iso).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" });
+    ziel.innerHTML = this.daten.kontrollen.slice(0, 20).map(k => {
+      const m = k.ergebnisse.filter(e => e.status === "mangel").length;
+      const badge = m > 0
+        ? `<span class="abzeichen rot">${m} Mangel</span>`
+        : '<span class="abzeichen gruen">OK</span>';
+      return `
+      <div class="listenzeile">
+        <div class="info">
+          <div class="titel">${this.esc(k.objektName)}</div>
+          <div class="unter">${f(k.ende)} Uhr · ${this.esc(k.pruefer)}</div>
+        </div>
+        ${badge}
+        <button class="mini-btn" onclick="App.historieOeffnen('${k.id}')">Bericht</button>
+      </div>`;
+    }).join("");
+  },
+
+  historieOeffnen(id) {
+    const k = this.daten.kontrollen.find(x => x.id === id);
+    if (k) this.berichtAnzeigen(k);
+  }
+};
+
+App.zeige("start");
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+</script>
+</body>
+</html>
