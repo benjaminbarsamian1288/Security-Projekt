@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0d1b2a">
+<title>Elektronisches Wachbuch</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root{
+    --bg:#0d1b2a; --panel:#1b3b5f; --panel2:#16324f; --line:#2c5282;
+    --text:#eef3f8; --muted:#9db4cc; --accent:#56a0d8; --accent2:#7cc4ff;
+    --ok:#38b26f; --warn:#e2b93b; --bad:#e05c5c;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:var(--bg); color:var(--text);
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  header{
+    background:linear-gradient(135deg,#16324f,#0d1b2a);
+    padding:14px 16px 10px; border-bottom:2px solid var(--accent);
+    position:sticky; top:0; z-index:10;
+  }
+  header h1{font-size:1.15rem; letter-spacing:.5px; display:flex; align-items:center; gap:8px;}
+  header h1 .shield{font-size:1.3rem;}
+  .sub{color:var(--muted); font-size:.78rem; margin-top:2px;}
+  main{max-width:820px; margin:0 auto; padding:12px 12px 40px;}
+
+  .card{
+    background:var(--panel2); border:1px solid var(--line); border-radius:12px;
+    padding:14px; margin-top:12px;
+  }
+  .card h2{font-size:.95rem; color:var(--accent2); margin-bottom:10px; text-transform:uppercase; letter-spacing:.8px;}
+  label{display:block; font-size:.78rem; color:var(--muted); margin:8px 0 3px;}
+  input,select,textarea{
+    width:100%; padding:10px; border-radius:8px; border:1px solid var(--line);
+    background:var(--panel); color:var(--text); font-size:1rem;
+  }
+  textarea{min-height:84px; resize:vertical;}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--accent); border-color:var(--accent);}
+  .row{display:flex; gap:10px; flex-wrap:wrap;}
+  .row>div{flex:1; min-width:140px;}
+  button{
+    padding:11px 16px; border:none; border-radius:9px; font-size:.95rem; font-weight:600;
+    cursor:pointer; background:var(--panel); color:var(--text); border:1px solid var(--line);
+  }
+  button.primary{background:var(--accent); border-color:var(--accent); color:#082033;}
+  button.primary:active{background:var(--accent2);}
+  button.small{padding:6px 10px; font-size:.78rem; border-radius:7px;}
+  button.danger{color:var(--bad); border-color:var(--bad);}
+  .btnrow{display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;}
+
+  .entry{
+    border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-top:10px;
+    background:var(--panel);
+  }
+  .entry.storniert{opacity:.62;}
+  .entry.storniert .etext{text-decoration:line-through;}
+  .ehead{display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; font-size:.78rem; color:var(--muted);}
+  .ehead b{color:var(--accent2);}
+  .badge{
+    display:inline-block; padding:2px 8px; border-radius:999px; font-size:.72rem; font-weight:700;
+    background:var(--line); color:var(--text); margin:6px 0 4px;
+  }
+  .badge.alarm{background:#5f1b1b; color:#ffb3b3;}
+  .badge.vorkommnis{background:#5f4a1b; color:#ffe2a0;}
+  .badge.schicht{background:#1b5f3a; color:#a9f0c9;}
+  .badge.storno{background:#444; color:#ddd;}
+  .etext{white-space:pre-wrap; font-size:.95rem; margin-top:2px;}
+  .ehash{font-family:ui-monospace,Menlo,Consolas,monospace; font-size:.68rem; color:var(--muted); margin-top:6px; word-break:break-all;}
+  .stornonote{font-size:.78rem; color:var(--bad); margin-top:4px;}
+
+  .status{font-size:.82rem; margin-top:8px;}
+  .status.ok{color:var(--ok);} .status.bad{color:var(--bad);}
+  .muted{color:var(--muted); font-size:.8rem;}
+  .empty{color:var(--muted); text-align:center; padding:20px 0; font-size:.9rem;}
+  .counter{font-size:.78rem; color:var(--muted); margin-top:6px;}
+
+  dialog{
+    border:1px solid var(--line); border-radius:12px; background:var(--panel2); color:var(--text);
+    padding:18px; max-width:420px; width:92%;
+  }
+  dialog::backdrop{background:rgba(0,0,0,.6);}
+
+  /* ---------- Druckansicht ---------- */
+  .printonly{display:none;}
+  @media print{
+    body{background:#fff; color:#000;}
+    header, main .card, .noprint{display:none !important;}
+    .printonly{display:block; font-size:11pt; color:#000;}
+    .printonly h1{font-size:15pt; margin-bottom:2pt;}
+    .printonly .pmeta{font-size:9pt; margin-bottom:10pt;}
+    table.ptable{width:100%; border-collapse:collapse; font-size:9pt;}
+    table.ptable th, table.ptable td{border:1px solid #444; padding:4pt 5pt; text-align:left; vertical-align:top;}
+    table.ptable th{background:#e8e8e8;}
+    tr.pstorno td{text-decoration:line-through; color:#777;}
+    .psig{margin-top:28pt; display:flex; gap:40pt;}
+    .psig div{flex:1; border-top:1px solid #000; padding-top:3pt; font-size:8pt;}
+    .pfoot{margin-top:8pt; font-size:7.5pt; color:#555;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span class="shield">🛡️</span> Elektronisches Wachbuch</h1>
+  <div class="sub" id="headSub">Revisionssicheres Dienstbuch · Einträge sind nach dem Speichern unveränderbar</div>
+</header>
+
+<main>
+
+  <!-- Stammdaten -->
+  <section class="card">
+    <h2>Dienst / Objekt</h2>
+    <div class="row">
+      <div>
+        <label for="objekt">Objekt</label>
+        <select id="objekt"></select>
+      </div>
+      <div>
+        <label for="verfasser">Mitarbeiter (Verfasser)</label>
+        <input id="verfasser" placeholder="Name, Vorname" autocomplete="name">
+      </div>
+    </div>
+    <div class="btnrow noprint">
+      <button class="small" id="btnObjektNeu">+ Objekt anlegen</button>
+    </div>
+  </section>
+
+  <!-- Neuer Eintrag -->
+  <section class="card">
+    <h2>Neuer Eintrag</h2>
+    <label for="art">Ereignisart</label>
+    <select id="art">
+      <option>Schichtbeginn</option>
+      <option>Schichtende / Übergabe</option>
+      <option>Kontrollgang / Revierstreife</option>
+      <option>Besonderes Vorkommnis</option>
+      <option>Alarm</option>
+      <option>Schlüsselausgabe / -rücknahme</option>
+      <option>Besucher / Anlieferung</option>
+      <option>Technische Störung</option>
+      <option>Sonstiges</option>
+    </select>
+    <label for="text">Beschreibung</label>
+    <textarea id="text" placeholder="Was ist passiert? Wer, was, wo, wann, welche Maßnahmen …"></textarea>
+    <div class="btnrow">
+      <button class="primary" id="btnSpeichern">Eintrag speichern</button>
+    </div>
+    <div class="muted" id="clock" style="margin-top:8px;"></div>
+  </section>
+
+  <!-- Filter & Aktionen -->
+  <section class="card">
+    <h2>Wachbuch</h2>
+    <div class="row">
+      <div>
+        <label for="fVon">Von</label>
+        <input type="date" id="fVon">
+      </div>
+      <div>
+        <label for="fBis">Bis</label>
+        <input type="date" id="fBis">
+      </div>
+      <div>
+        <label for="fArt">Ereignisart</label>
+        <select id="fArt"><option value="">Alle</option></select>
+      </div>
+    </div>
+    <label for="fSuche">Suche</label>
+    <input id="fSuche" placeholder="Freitextsuche …">
+    <div class="btnrow">
+      <button id="btnPruefen">🔒 Kette prüfen</button>
+      <button id="btnCSV">⬇️ CSV-Export</button>
+      <button id="btnDruck">🖨️ Drucken / PDF</button>
+      <button id="btnBackup">💾 Backup (JSON)</button>
+      <button id="btnRestore">📂 Backup laden</button>
+      <input type="file" id="fileRestore" accept=".json" hidden>
+    </div>
+    <div class="status" id="chainStatus"></div>
+    <div class="counter" id="counter"></div>
+    <div id="liste"></div>
+  </section>
+
+</main>
+
+<!-- Storno-Dialog -->
+<dialog id="dlgStorno">
+  <h2 style="color:var(--accent2); font-size:1rem; margin-bottom:8px;">Eintrag stornieren</h2>
+  <p class="muted">Einträge werden nie gelöscht. Der Eintrag wird als storniert markiert und ein Storno-Vermerk wird als neuer Eintrag angehängt.</p>
+  <label for="stornoGrund">Grund der Stornierung</label>
+  <textarea id="stornoGrund" placeholder="z. B. Falscheintrag, richtige Fassung folgt unter Nr. …"></textarea>
+  <div class="btnrow">
+    <button class="danger" id="btnStornoOk">Stornieren</button>
+    <button id="btnStornoAbbr">Abbrechen</button>
+  </div>
+</dialog>
+
+<!-- Druckansicht -->
+<div class="printonly" id="printArea"></div>
+
+<script>
+"use strict";
+/* ================= SHA-256 (synchron, ohne Abhängigkeiten) ================= */
+function sha256(ascii){
+  function rr(v,c){return (v>>>c)|(v<<(32-c));}
+  var mathPow=Math.pow, maxWord=mathPow(2,32), result='', i, j;
+  var words=[], asciiBitLength=ascii.length*8;
+  var hash=sha256.h=sha256.h||[], k=sha256.k=sha256.k||[], primeCounter=k.length;
+  var isComposite={};
+  for(var candidate=2; primeCounter<64; candidate++){
+    if(!isComposite[candidate]){
+      for(i=0;i<313;i+=candidate){isComposite[i]=candidate;}
+      hash[primeCounter]=(mathPow(candidate,.5)*maxWord)|0;
+      k[primeCounter++]=(mathPow(candidate,1/3)*maxWord)|0;
+    }
+  }
+  ascii+='\x80';
+  while(ascii.length%64-56) ascii+='\x00';
+  for(i=0;i<ascii.length;i++){
+    j=ascii.charCodeAt(i);
+    if(j>>8) return; // nur nach UTF-8-Kodierung aufrufen
+    words[i>>2]|=j<<((3-i)%4)*8;
+  }
+  words[words.length]=(asciiBitLength/maxWord)|0;
+  words[words.length]=asciiBitLength;
+  for(j=0;j<words.length;){
+    var w=words.slice(j,j+=16), oldHash=hash;
+    hash=hash.slice(0,8);
+    for(i=0;i<64;i++){
+      var w15=w[i-15], w2=w[i-2];
+      var a=hash[0], e=hash[4];
+      var temp1=hash[7]
+        +(rr(e,6)^rr(e,11)^rr(e,25))
+        +((e&hash[5])^((~e)&hash[6]))
+        +k[i]
+        +(w[i]=(i<16)?w[i]:(w[i-16]+(rr(w15,7)^rr(w15,18)^(w15>>>3))+w[i-7]+(rr(w2,17)^rr(w2,19)^(w2>>>10)))|0);
+      var temp2=(rr(a,2)^rr(a,13)^rr(a,22))+((a&hash[1])^(a&hash[2])^(hash[1]&hash[2]));
+      hash=[(temp1+temp2)|0].concat(hash);
+      hash[4]=(hash[4]+temp1)|0;
+    }
+    for(i=0;i<8;i++){hash[i]=(hash[i]+oldHash[i])|0;}
+  }
+  for(i=0;i<8;i++){
+    for(j=3;j+1;j--){
+      var b=(hash[i]>>(j*8))&255;
+      result+=((b<16)?0:'')+b.toString(16);
+    }
+  }
+  return result;
+}
+function hashStr(s){ return sha256(unescape(encodeURIComponent(s))); }
+
+/* ================= Datenhaltung ================= */
+const KEY='wachbuch_v1';
+let db=load();
+function load(){
+  try{
+    const d=JSON.parse(localStorage.getItem(KEY));
+    if(d && Array.isArray(d.entries)) return d;
+  }catch(e){}
+  return {objekte:['Hauptobjekt'], verfasser:'', entries:[]};
+}
+function save(){ localStorage.setItem(KEY, JSON.stringify(db)); }
+
+function entryPayload(e){
+  return [e.nr,e.ts,e.objekt,e.verfasser,e.art,e.text,e.prev].join('|');
+}
+function addEntry(art,text,extra){
+  const prev=db.entries.length?db.entries[db.entries.length-1].hash:'GENESIS';
+  const e={
+    nr:db.entries.length+1,
+    ts:new Date().toISOString(),
+    objekt:document.getElementById('objekt').value||'',
+    verfasser:db.verfasser,
+    art:art, text:text, prev:prev
+  };
+  if(extra) Object.assign(e,extra);
+  e.hash=hashStr(entryPayload(e));
+  db.entries.push(e);
+  save();
+  return e;
+}
+function verifyChain(){
+  let prev='GENESIS';
+  for(const e of db.entries){
+    if(e.prev!==prev) return e.nr;
+    if(hashStr(entryPayload(e))!==e.hash) return e.nr;
+    prev=e.hash;
+  }
+  return 0;
+}
+
+/* ================= UI ================= */
+const $=id=>document.getElementById(id);
+const fmt=ts=>{
+  const d=new Date(ts);
+  return d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+
+         d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',second:'2-digit'})+' Uhr';
+};
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function badgeClass(art){
+  if(art==='Alarm') return 'alarm';
+  if(art==='Besonderes Vorkommnis') return 'vorkommnis';
+  if(art.startsWith('Schicht')) return 'schicht';
+  if(art==='Storno-Vermerk') return 'storno';
+  return '';
+}
+
+function renderObjekte(){
+  const sel=$('objekt'); const cur=sel.value;
+  sel.innerHTML=db.objekte.map(o=>`<option${o===cur?' selected':''}>${esc(o)}</option>`).join('');
+}
+function renderArtFilter(){
+  const arten=[...new Set(db.entries.map(e=>e.art))];
+  const sel=$('fArt'); const cur=sel.value;
+  sel.innerHTML='<option value="">Alle</option>'+arten.map(a=>`<option${a===cur?' selected':''}>${esc(a)}</option>`).join('');
+}
+
+function filtered(){
+  const von=$('fVon').value, bis=$('fBis').value, art=$('fArt').value,
+        q=$('fSuche').value.trim().toLowerCase();
+  return db.entries.filter(e=>{
+    const day=e.ts.slice(0,10);
+    if(von && day<von) return false;
+    if(bis && day>bis) return false;
+    if(art && e.art!==art) return false;
+    if(q && !(e.text+' '+e.art+' '+e.verfasser+' '+e.objekt).toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+
+function render(){
+  renderObjekte(); renderArtFilter();
+  const list=filtered().slice().reverse();
+  $('counter').textContent=list.length+' von '+db.entries.length+' Einträgen';
+  if(!list.length){ $('liste').innerHTML='<div class="empty">Keine Einträge vorhanden.</div>'; return; }
+  $('liste').innerHTML=list.map(e=>`
+    <div class="entry${e.storniert?' storniert':''}">
+      <div class="ehead">
+        <span><b>Nr. ${e.nr}</b> · ${fmt(e.ts)}</span>
+        <span>${esc(e.objekt)} · ${esc(e.verfasser||'—')}</span>
+      </div>
+      <span class="badge ${badgeClass(e.art)}">${esc(e.art)}</span>
+      <div class="etext">${esc(e.text)}</div>
+      ${e.storniert?`<div class="stornonote">⛔ Storniert (siehe Nr. ${e.storniert.durchNr}): ${esc(e.storniert.grund)}</div>`:''}
+      <div class="ehash">⛓ ${e.hash.slice(0,16)}…</div>
+      ${(!e.storniert && e.art!=='Storno-Vermerk')?`<div class="btnrow noprint"><button class="small danger" data-storno="${e.nr}">Stornieren</button></div>`:''}
+    </div>`).join('');
+}
+
+/* ---------- Aktionen ---------- */
+$('btnSpeichern').onclick=()=>{
+  const text=$('text').value.trim();
+  db.verfasser=$('verfasser').value.trim();
+  if(!db.verfasser){ alert('Bitte Mitarbeitername eintragen.'); $('verfasser').focus(); return; }
+  if(!text){ alert('Bitte eine Beschreibung eintragen.'); $('text').focus(); return; }
+  save();
+  addEntry($('art').value, text);
+  $('text').value='';
+  render();
+  $('chainStatus').textContent='';
+};
+
+$('btnObjektNeu').onclick=()=>{
+  const name=prompt('Name des neuen Objekts:');
+  if(!name||!name.trim()) return;
+  if(!db.objekte.includes(name.trim())) db.objekte.push(name.trim());
+  save(); renderObjekte();
+  $('objekt').value=name.trim();
+};
+
+let stornoNr=null;
+$('liste').addEventListener('click',ev=>{
+  const b=ev.target.closest('button[data-storno]');
+  if(!b) return;
+  stornoNr=parseInt(b.dataset.storno,10);
+  $('stornoGrund').value='';
+  $('dlgStorno').showModal();
+});
+$('btnStornoAbbr').onclick=()=>$('dlgStorno').close();
+$('btnStornoOk').onclick=()=>{
+  const grund=$('stornoGrund').value.trim();
+  if(!grund){ alert('Bitte Grund angeben.'); return; }
+  db.verfasser=$('verfasser').value.trim()||db.verfasser;
+  const orig=db.entries.find(e=>e.nr===stornoNr);
+  if(!orig) return;
+  const v=addEntry('Storno-Vermerk','Eintrag Nr. '+stornoNr+' storniert. Grund: '+grund);
+  orig.storniert={grund:grund, durchNr:v.nr, ts:v.ts};
+  save();
+  $('dlgStorno').close();
+  render();
+};
+
+$('btnPruefen').onclick=()=>{
+  const bad=verifyChain();
+  const el=$('chainStatus');
+  if(!db.entries.length){ el.className='status'; el.textContent='Keine Einträge zu prüfen.'; return; }
+  if(bad===0){ el.className='status ok'; el.textContent='✅ Hash-Kette intakt – alle '+db.entries.length+' Einträge unverändert.'; }
+  else{ el.className='status bad'; el.textContent='❌ Manipulation erkannt ab Eintrag Nr. '+bad+'!'; }
+};
+
+['fVon','fBis','fArt','fSuche'].forEach(id=>$(id).addEventListener('input',render));
+
+/* ---------- CSV ---------- */
+$('btnCSV').onclick=()=>{
+  const rows=[['Nr','Datum/Zeit','Objekt','Verfasser','Ereignisart','Beschreibung','Storniert','Hash']];
+  filtered().forEach(e=>rows.push([
+    e.nr, fmt(e.ts), e.objekt, e.verfasser, e.art, e.text,
+    e.storniert?('ja – '+e.storniert.grund):'nein', e.hash
+  ]));
+  const csv='﻿'+rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(';')).join('\r\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download='wachbuch_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+};
+
+/* ---------- Druck ---------- */
+$('btnDruck').onclick=()=>{
+  const list=filtered();
+  const von=$('fVon').value, bis=$('fBis').value;
+  const zeitraum=(von||bis)?((von?fmtDay(von):'Anfang')+' – '+(bis?fmtDay(bis):'heute')):'gesamter Zeitraum';
+  $('printArea').innerHTML=`
+    <h1>Wachbuch – ${esc($('objekt').value||'')}</h1>
+    <div class="pmeta">Zeitraum: ${esc(zeitraum)} · Gedruckt: ${fmt(new Date().toISOString())} · Einträge: ${list.length}</div>
+    <table class="ptable">
+      <thead><tr><th>Nr.</th><th>Datum / Zeit</th><th>Verfasser</th><th>Ereignisart</th><th>Beschreibung</th></tr></thead>
+      <tbody>
+        ${list.map(e=>`<tr class="${e.storniert?'pstorno':''}">
+          <td>${e.nr}</td><td>${fmt(e.ts)}</td><td>${esc(e.verfasser)}</td>
+          <td>${esc(e.art)}</td><td>${esc(e.text)}${e.storniert?' [STORNIERT: '+esc(e.storniert.grund)+']':''}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+    <div class="psig"><div>Datum, Unterschrift Wachhabender</div><div>Datum, Unterschrift Objektleitung</div></div>
+    <div class="pfoot">Elektronisches Wachbuch – Einträge fortlaufend nummeriert und per SHA-256-Hash-Kette gegen nachträgliche Änderung gesichert. Letzter Hash: ${db.entries.length?db.entries[db.entries.length-1].hash:'—'}</div>`;
+  window.print();
+};
+function fmtDay(d){ const p=d.split('-'); return p[2]+'.'+p[1]+'.'+p[0]; }
+
+/* ---------- Backup ---------- */
+$('btnBackup').onclick=()=>{
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(db,null,1)],{type:'application/json'}));
+  a.download='wachbuch_backup_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+};
+$('btnRestore').onclick=()=>$('fileRestore').click();
+$('fileRestore').onchange=ev=>{
+  const f=ev.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const d=JSON.parse(r.result);
+      if(!d||!Array.isArray(d.entries)) throw new Error('Format');
+      if(!confirm('Backup mit '+d.entries.length+' Einträgen laden? Das aktuelle Wachbuch wird ersetzt.')) return;
+      db=d; save();
+      $('verfasser').value=db.verfasser||'';
+      render();
+    }catch(e){ alert('Ungültige Backup-Datei.'); }
+  };
+  r.readAsText(f);
+  ev.target.value='';
+};
+
+/* ---------- Uhr & Start ---------- */
+setInterval(()=>{ $('clock').textContent='Aktuelle Zeit: '+fmt(new Date().toISOString())+' (wird automatisch gespeichert)'; },1000);
+$('verfasser').value=db.verfasser||'';
+$('verfasser').addEventListener('change',()=>{ db.verfasser=$('verfasser').value.trim(); save(); });
+render();
+
+/* ---------- PWA ---------- */
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
